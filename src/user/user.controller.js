@@ -1,4 +1,4 @@
-'use strict' //Modo estricto
+'use strict'
 
 import User from './user.model.js'
 import { encrypt, checkPassword, checkUpdate } from '../utils/validator.js'
@@ -10,16 +10,11 @@ export const test = (req, res) => {
 
 export const register = async (req, res) => {
     try {
-        //Capturar el formulario (body)
         let data = req.body
-        //Encriptar la contraseña
         data.password = await encrypt(data.password)
-        //Asignar el rol por defecto
         data.role = 'CLIENT'
-        //Guardar la información en la BD
         let user = new User(data)
-        await user.save() //Guardar en la BD
-        //Responder al usuario
+        await user.save()
         return res.send({ message: `Registered successfully, can be logged with username ${user.username}` })
     } catch (err) {
         console.error(err)
@@ -29,18 +24,14 @@ export const register = async (req, res) => {
 
 export const login = async (req, res) => {
     try {
-        //Capturar los datos (body)
         let { username, password } = req.body
-        //Validar que el usuario exista
-        let user = await User.findOne({ username }) //buscar un solo registro
-        //Verifico que la contraseña coincida
+        let user = await User.findOne({ username })
         if (user && await checkPassword(password, user.password)) {
             let loggedUser = {
                 username: user.username,
                 name: user.name,
                 role: user.role
             }
-            //Respondo al usuario
             return res.send({ message: `Welcome ${loggedUser.name}`, loggedUser })
         }
         return res.status(404).send({ message: 'Invalid credentials' })
@@ -50,25 +41,18 @@ export const login = async (req, res) => {
     }
 }
 
-export const update = async (req, res) => { //Datos generales (No password)
+export const update = async (req, res) => {
     try {
-        //Obtener el id del usuario a actualizar
         let { id } = req.params
-        //Obtener los datos a actualizar
         let data = req.body
-        //Validar si data trae datos
         let update = checkUpdate(data, id)
         if (!update) return res.status(400).send({ message: 'Have submitted some data that cannot be updated or missing data' })
-        //Validar si tiene permisos (tokenización) X Hoy No lo vemos X
-        //Actualizar (BD)
         let updatedUser = await User.findOneAndUpdate(
-            { _id: id }, //ObjectsId <- hexadecimales (Hora sys, Version Mongo, Llave privada...)
-            data, //Los datos que se van a actualizar
-            { new: true } //Objeto de la BD ya actualizado
+            { _id: id },
+            data,
+            { new: true }
         )
-        //Validar la actualización
         if (!updatedUser) return res.status(401).send({ message: 'User not found and not updated' })
-        //Respondo al usuario
         return res.send({ message: 'Updated user', updatedUser })
     } catch (err) {
         console.error(err)
@@ -79,15 +63,10 @@ export const update = async (req, res) => { //Datos generales (No password)
 
 export const deleteU = async (req, res) => {
     try {
-        //Obtener el Id
         let { id } = req.params
-        //Validar si está logeado y es el mismo X No lo vemos hoy X
-        //Eliminar (deleteOne (solo elimina no devuelve el documento) / findOneAndDelete (Me devuelve el documento eliminado))
         let deletedUser = await User.findOneAndDelete({ _id: id })
-        //Verificar que se eliminó
         if (!deletedUser) return res.status(404).send({ message: 'Account not found and not deleted' })
-        //Responder
-        return res.send({ message: `Account with username ${deletedUser.username} deleted successfully` }) //status 200
+        return res.send({ message: `Account with username ${deletedUser.username} deleted successfully` })
     } catch (err) {
         console.error(err)
         return res.status(500).send({ message: 'Error deleting account' })

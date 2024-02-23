@@ -43,3 +43,14 @@ export const checkUpdate = (data, userId) => {
         return true
     }
 }
+
+export const checkUpdateP = (data, productsId) => {
+    if (productsId) {
+        if (Object.entries(data).length === 0) {
+            return false
+        }
+        return true
+    } else {
+        return false
+    }
+}

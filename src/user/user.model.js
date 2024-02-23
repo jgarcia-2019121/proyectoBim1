@@ -38,6 +38,4 @@ const userSchema = mongoose.Schema({
     }
 })
 
-//pre mongoose
-//pluralizar
 export default mongoose.model('user', userSchema)

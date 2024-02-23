@@ -1,8 +1,6 @@
 'use strict'
 
-import { checkUpdate } from '../utils/validator.js'
 import Category from './category.model.js'
-import User from '../user/user.controller.js'
 
 //Test
 export const test = (req, res) => {
@@ -10,76 +8,70 @@ export const test = (req, res) => {
     return res.send({ message: 'Test is running' })
 }
 
-//registro
+//Guardar categoria
 export const register = async (req, res) => {
     try {
         let data = req.body
-        let user = await User.findOne({ _id: data.keeper })
-        if (!user) return res.status(404).send({ message: 'Keeper not found' })
         let category = new Category(data)
         await category.save()
-        return res.send({ message: `Registered successfully, can be logged with category ${category.name}` })
+        return res.send({ message: `Registered succesfully, can be logged with name ${category.name}` })
     } catch (err) {
         console.error(err)
-        return res.status(500).send({ message: 'Error registering category', err: err })
+        return res.status(200).send({ message: 'Error registering category', err: err })
     }
 }
 
-//obtener las categorias
-export const seeCategory = async (req, res) => {
+//Obtener categoria
+export const get = async (req, res) => {
     try {
         const category = await Category.find();
-        return res.send(category);
+        return res.send(category)
     } catch (err) {
         console.error(err);
-        return res.status(500).send({ message: 'Error' });
+        return res.status(404).send({ message: 'error getting category' })
     }
 }
 
-//Update
+//Actualizar categoria
 export const update = async (req, res) => {
     try {
-        let data = req.body
-        let { id } = req.params
-        let update = checkUpdate(data, false)
-        if (!update) return res.status(400).send({ message: 'Have submitted some data that cannot be updated or missing data' })
-        let updateCategory = await Category.findOneAndUpdate(
+        let { id } = req.params;
+        let data = req.body;
+        let updatedCategory = await Category.findOneAndUpdate(
             { _id: id },
             data,
             { new: true }
-        ).populate('user', ['name'])
-        if (!updateCategory) return res.status(404).send({ menssage: 'Category not found and not upadate' })
-        return res.send({ menssage: 'Update new', updateCategory })
+        )
+        if (!updatedCategory) return res.status(404).send({ message: 'Category not found and not updated' });
+        return res.send({ message: 'Category updated', updatedCategory });
     } catch (err) {
-        console.error(err)
-        return res.status(500).send({ message: 'Error updatting account' })
+        console.error(err);
+        if (err.keyValue && err.keyValue.name) return res.status(400).send({ message: `Category ${err.keyValue.name} is already taken` });
+        return res.status().send({ message: 'Error updating category' });
     }
 }
 
-//delete
 export const deleteC = async (req, res) => {
     try {
         let { id } = req.params
-        let deleteCategory = await Category.findOneAndDelete({ _id: id })
-        if (deleteCategory.deleteCount === 0) return res.status(404).send({ message: 'Category not found and not delete' })
-        return res.send({ message: `Delete successfully` })
+        let deletedCategory = await Category.findOneAndDelete({ _id: id })
+        if (!deletedCategory) return res.status(404).send({ message: 'Category not found and not deleted' })
+        return res.send({ message: `Category with name ${deletedCategory.name} deleted successfully` });
     } catch (err) {
         console.error(err)
-        return res.status(500).send({ message: 'Error deleting account' })
+        return res.status(500).send({ message: 'Error deleting Category' })
     }
 }
 
-//Buscar
+//Buscar categoria
 export const search = async (req, res) => {
     try {
         let { search } = req.body
-        let categories = await Category.find(
-            { name: search }
-        ).populate('user', ['name'])
-        if (!categories) return res.status(404).send({ message: 'Categories not found' })
-        return res.send({ message: 'Category found', categories })
+        let category = await Category.find({ name: search })
+        if (!category) return res.status(404).send({ message: 'Category not found' })
+        return res.send({ message: 'Product found', category })
     } catch (err) {
         console.error(err)
-        return res.status(500).send({ menssage: 'Error searching categories' })
+        return res.status(500).send({ message: 'Error searching Category' })
     }
 }
