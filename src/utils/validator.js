@@ -1,33 +1,34 @@
-'use strict'
-
 import { hash, compare } from 'bcrypt'
 
 export const encrypt = (password) => {
     try {
         return hash(password, 10)
-    } catch (err) {
-        console.error(err)
-        return err
+    } catch (error) {
+        console.error(error)
+        return error
     }
 }
 
 export const checkPassword = async (password, hash) => {
     try {
         return await compare(password, hash)
-    } catch (err) {
-        console.error(err);
-        return err
+    } catch (error) {
+        console.error(error);
+        return error
     }
 }
 
-export const checkUpdate = (data, userId) => {
-    if (userId) {
+export const checkUpdateClient = (data, id) => {
+    if (id) {
         if (
             Object.entries(data).length === 0 ||
+            data.name == '' ||
+            data.description == '' ||
             data.password ||
             data.password == '' ||
-            data.role ||
-            data.role == ''
+            data.role == '' ||
+            data.role
+
         ) {
             return false
         }
@@ -35,8 +36,8 @@ export const checkUpdate = (data, userId) => {
     } else {
         if (
             Object.entries(data).length === 0 ||
-            data.keeper ||
-            data.keeper == ''
+            data.category ||
+            data.category == ''
         ) {
             return false
         }
@@ -44,13 +45,19 @@ export const checkUpdate = (data, userId) => {
     }
 }
 
-export const checkUpdateP = (data, productsId) => {
-    if (productsId) {
-        if (Object.entries(data).length === 0) {
+export const checkUpdateAdmin = (data, id) => {
+    if (id) {
+        if (
+            Object.entries(data).length === 0 ||
+            data.name == '' ||
+            data.description == '' ||
+            data.password ||
+            data.password == '' ||
+            data.role == ''
+
+        ) {
             return false
         }
         return true
-    } else {
-        return false
     }
-}
+}  

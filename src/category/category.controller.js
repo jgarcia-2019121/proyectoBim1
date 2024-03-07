@@ -1,6 +1,9 @@
 'use strict'
 
 import Category from './category.model.js'
+import Product from '../product/product.model.js'
+import { checkUpdateClient } from '../utils/validator.js'
+
 
 //Test
 export const test = (req, res) => {
@@ -21,7 +24,7 @@ export const register = async (req, res) => {
     }
 }
 
-//Obtener categoria
+//Obteniene las categorias
 export const get = async (req, res) => {
     try {
         const category = await Category.find();
@@ -35,31 +38,50 @@ export const get = async (req, res) => {
 //Actualizar categoria
 export const update = async (req, res) => {
     try {
-        let { id } = req.params;
-        let data = req.body;
-        let updatedCategory = await Category.findOneAndUpdate(
+        let data = req.body
+        let { id } = req.params
+        let update = checkUpdateClient(data, id)
+        if (update === false) return res.status(400).send({ message: 'enter all data' })
+        let updateCat = await Category.findOneAndUpdate(
             { _id: id },
             data,
             { new: true }
         )
-        if (!updatedCategory) return res.status(404).send({ message: 'Category not found and not updated' });
-        return res.send({ message: 'Category updated', updatedCategory });
-    } catch (err) {
-        console.error(err);
-        if (err.keyValue && err.keyValue.name) return res.status(400).send({ message: `Category ${err.keyValue.name} is already taken` });
-        return res.status().send({ message: 'Error updating category' });
+        if (!updateCat) return res.status(401).send({ message: 'Category not found and not updated' })
+        return res.send({ message: 'Updated category', updateCat })
+    } catch (error) {
+        console.error(error);
+        return res.status(500).send({ message: 'error updating' })
+
     }
 }
 
+//Eliminar la categoria
 export const deleteC = async (req, res) => {
     try {
-        let { id } = req.params
-        let deletedCategory = await Category.findOneAndDelete({ _id: id })
-        if (!deletedCategory) return res.status(404).send({ message: 'Category not found and not deleted' })
-        return res.send({ message: `Category with name ${deletedCategory.name} deleted successfully` });
-    } catch (err) {
-        console.error(err)
-        return res.status(500).send({ message: 'Error deleting Category' })
+        let categoryToDelete = await Category.findById(id);
+        if (!categoryToDelete) {
+            return res.status(404).send({ message: 'The category does not exist' });
+        }
+        // Buscar la categoría 'default'
+        let defaultCategory = await Category.findOne({ name: 'Default' });
+        if (!defaultCategory) {
+            return res.status(404).send({ message: 'Default category not found' });
+        }
+        // Actualizar los productos relacionados a la categoría que se está eliminando
+        let updateProducts = await Product.updateMany(
+            { category: categoryToDelete._id },
+            { $set: { category: defaultCategory._id } }
+        );
+        // Eliminar la categoría
+        let deleteCategory = await Category.findOneAndDelete({ _id: id });
+        if (!deleteCategory) {
+            return res.status(404).send({ message: 'Error when deleting category' });
+        }
+        return res.send({ message: `Category with name ${deleteCategory.name} deleted successfully` });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).send({ message: 'Internal server error' });
     }
 }
 
@@ -73,5 +95,23 @@ export const search = async (req, res) => {
     } catch (err) {
         console.error(err)
         return res.status(500).send({ message: 'Error searching Category' })
+    }
+}
+
+//Categoria default del Admin
+export const defaultCategory = async () => {
+    try {
+        const existingCategory = await Category.findOne({ name: 'Default' });
+        if (existingCategory) {
+            return;
+        }
+        let data = {
+            name: 'Default',
+            description: 'default'
+        }
+        let category = new Category(data)
+        await category.save()
+    } catch (error) {
+        console.error(error)
     }
 }

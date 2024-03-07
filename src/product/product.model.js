@@ -18,8 +18,11 @@ const productSchema = Schema({
         required: true
     },
     category: {
-        type: String,
-        required: true
+        type: Schema.Types.ObjectId,
+        ref: 'category',
+        require: true
     }
+}, {
+    versionKey: false
 })
 export default model('product', productSchema)

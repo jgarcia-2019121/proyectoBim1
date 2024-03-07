@@ -8,7 +8,9 @@ const categorySchema = mongoose.Schema({
     description: {
         type: String,
         required: true
-    },
+    }
+}, {
+    versionKey: false
 })
 
 export default mongoose.model('category', categorySchema)
