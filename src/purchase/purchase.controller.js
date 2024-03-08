@@ -72,7 +72,7 @@ export const get = async (req, res) => {
         let { authorization } = req.headers
         let { uid } = jwt.verify(authorization, secretKey)
 
-        let purchases = await Purchase.find({ client: uid })
+        let purchases = await Purchase.find({ user: uid })
 
         return res.send({ purchases })
     } catch (err) {
@@ -86,8 +86,9 @@ export const generateInvoice = async (req, res) => {
     try {
         const uid = req.user.id
         const currentDate = new Date().toLocaleDateString('en-US', { timeZone: 'UTC' })
-        const purchases = await Purchase.find({ client: uid }).populate('product')
+        const purchases = await Purchase.find({ user: uid }).populate('product')
         const fileName = `invoices_${uid}.pdf`
+
         const doc = new PDFDocument()
         doc.pipe(fs.createWriteStream(fileName))
         doc.fontSize(12).text('Invoices Client', { align: 'center' }).moveDown()
@@ -109,10 +110,8 @@ export const generateInvoice = async (req, res) => {
         })
 
         doc.fontSize(12).text('Total: ' + `Q${total.toFixed(2)}`, { align: 'right' }).moveDown()
-
         doc.end()
-
-        await Purchase.deleteMany({ client: uid })
+        await Purchase.deleteMany({ user: uid })
 
         res.download(fileName)
     } catch (error) {
