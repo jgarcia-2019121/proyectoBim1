@@ -86,12 +86,12 @@ export const generateInvoice = async (req, res) => {
     try {
         const uid = req.user.id
         const currentDate = new Date().toLocaleDateString('en-US', { timeZone: 'UTC' })
-        const purchases = await Purchase.find({ user: uid }).populate('product')
-        const fileName = `invoices_${uid}.pdf`
+        const purchases = await Purchase.find({ user: uid }).populate('product').populate('user')
+        const fileName = `factura${uid}.pdf`
 
         const doc = new PDFDocument()
         doc.pipe(fs.createWriteStream(fileName))
-        doc.fontSize(12).text('Invoices Client', { align: 'center' }).moveDown()
+        doc.fontSize(12).text('Factura', { align: 'center' }).moveDown()
 
         let total = 0
         purchases.forEach((purchase, index) => {
@@ -100,13 +100,15 @@ export const generateInvoice = async (req, res) => {
 
             if (index === 0) {
                 doc.fontSize(10).text('Date: ' + currentDate).moveDown()
+                doc.fontSize(10).text('Client: ' + purchase.user.name, { align: 'right' }).moveDown()
             }
             doc.fontSize(10)
-                .text('Product: ' + purchase.product.name, { continued: true })
-                .text('Price: ' + `Q${purchase.product.price.toFixed(2)}`, { continued: true })
-                .text('Amount: ' + purchase.amount, { continued: true })
+                .text('Product: ' + purchase.product.name + '  |  ', { continued: true })
+                .text('Price: ' + `Q${purchase.product.price.toFixed(2)}` + '  |  ', { continued: true })
+                .text('Amount: ' + purchase.amount + '  |  ', { continued: true })
                 .text('Total: ' + `Q${totalPurchase.toFixed(2)}`)
                 .moveDown()
+                .text('| ----------------------------------------------------------------------------------------------------------- |')
         })
 
         doc.fontSize(12).text('Total: ' + `Q${total.toFixed(2)}`, { align: 'right' }).moveDown()

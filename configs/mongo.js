@@ -21,7 +21,6 @@ export const connect = async () => {
 
             //Verificar si hay usuario Admin creado
             const adminExist = await User.findOne();
-
             if (!adminExist || !adminExist.role === 'ADMIN') {
                 const hashPassword = await bcrypt.hash('default123', 10);
                 const defaultAdmin = new User({
