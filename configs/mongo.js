@@ -3,6 +3,7 @@
 import mongoose from "mongoose"
 import bcrypt from "bcrypt"
 import User from '../src/user/user.model.js'
+import Category from '../src/category/category.model.js'
 
 export const connect = async () => {
     try {
@@ -35,7 +36,20 @@ export const connect = async () => {
                 await defaultAdmin.save();
                 console.log('created default admin', defaultAdmin)
             }
+            const existsCategory = await Category.findOne({ name: 'default' })
+
+            if (existsCategory) {
+                return console.log('The default category already exists')
+            }
+            let data = {
+                name: 'default',
+                description: ' default'
+            }
+            let defaultCategory = new Category(data)
+            await defaultCategory.save()
+            console.log('Default category created:', defaultCategory);
         })
+
         mongoose.connection.on('reconnected', () => {
             console.log('MongoDB | reconected to mongodb')
         })

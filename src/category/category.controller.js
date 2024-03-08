@@ -60,8 +60,8 @@ export const deleteC = async (req, res) => {
     try {
         let { id } = req.params;
         let deletedCategory = await Category.findOneAndDelete({ _id: id });
-        if (!deletedCategory) return res.status(404).send({ message: 'Category not found and not deleted' });
-        return res.send({ message: `Category with name ${deletedCategory.name} deleted successfully` });
+        if (!deletedCategory) return res.status(404).send({ message: 'Category not found and not deleted' })
+        return res.send({ message: `Category with name ${deletedCategory.name} deleted successfully` })
     } catch (err) {
         console.error(err);
         return res.status(500).send({ message: 'Error deleting Category' });
@@ -78,5 +78,25 @@ export const search = async (req, res) => {
     } catch (err) {
         console.error(err)
         return res.status(500).send({ message: 'Error searching Category' })
+    }
+}
+
+//categori default
+export const defaultCategory = async (req, res) => {
+    try {
+        const categoryExist = await Category.findOne({ name: 'categoryDefault' })
+
+        if (categoryExist) {
+            return console.log('The categoryDefault category already exists')
+        }
+        let data = {
+            name: 'categoryDefault',
+            description: 'The articles do not have a category'
+        }
+        let category = new Category(data)
+        await category.save()
+        return res.send({ message: 'Updated category', data })
+    } catch (err) {
+        console.error(err)
     }
 }
