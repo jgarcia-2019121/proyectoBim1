@@ -7,7 +7,7 @@ const cartSchema = new Schema({
         required: true
     },
     items: [{
-        product: {
+        productId: {
             type: Schema.Types.ObjectId,
             ref: 'Product',
             required: true
@@ -26,4 +26,3 @@ const cartSchema = new Schema({
 });
 
 export default model('cart', cartSchema)
-

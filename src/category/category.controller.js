@@ -1,7 +1,6 @@
 'use strict'
 
 import Category from './category.model.js'
-import Product from '../product/product.model.js'
 import { checkUpdateUser } from '../utils/validator.js'
 
 

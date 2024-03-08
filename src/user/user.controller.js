@@ -107,6 +107,6 @@ export const deleteU = async (req, res) => {
         return res.send({ message: `Account ${deletedAccount.username} deleted successfully` })
     } catch (error) {
         console.error(error)
-        return res.status(500).send({ message: 'FAIL deleting' })
+        return res.status(500).send({ message: 'Error deleating data' })
     }
 }

@@ -1,38 +1,19 @@
 import { Schema, model } from 'mongoose'
 
 const purchaseSchema = Schema({
+    product: {
+        type: Schema.Types.ObjectId,
+        ref: 'product',
+        required: true
+    },
+    amount: {
+        type: Number,
+        required: true
+    },
     user: {
         type: Schema.Types.ObjectId,
-        ref: 'User',
+        ref: 'user',
         required: true
-    },
-    carrito: {
-        type: Schema.Types.ObjectId,
-        ref: 'Cart',
-        required: true
-    },
-    items: [{
-        product: {
-            type: Schema.Types.ObjectId,
-            ref: 'Product',
-            required: true
-        },
-        quantity: {
-            type: Number,
-            required: true
-        },
-        price: {
-            type: String,
-            required: true
-        }
-    }],
-    total: {
-        type: String,
-        required: true
-    },
-    fecha: {
-        type: Date,
-        default: Date.now
     }
 }, {
     versionKey: false

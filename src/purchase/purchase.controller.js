@@ -1,9 +1,10 @@
-import Cart from '../cart/cart.model.js'
+import { checkUpdateUser } from "../utils/validator.js"
+import Product from "../product/product.model.js"
 import Purchase from '../purchase/purchase.model.js';
-import jwt from 'jsonwebtoken';
-import PDFdocument from 'pdfkit';
+import User from '../user/user.model.js'
+import jwt from 'jsonwebtoken'
+import PDFDocument from 'pdfkit'
 import fs from 'fs'
-import path from 'path';
 
 export const test = (req, res) => {
     console.log('Test is running')
@@ -12,85 +13,110 @@ export const test = (req, res) => {
 
 export const register = async (req, res) => {
     try {
-        // Obtener el ID del usuario desde el token
-        let token = req.headers.authorization;
-        let decodeToken = jwt.verify(token, process.env.SECRET_KEY);
-        let id = decodeToken.id;
-        // Obtener los productos en el carrito del usuario
-        let purchase = await Purchase.findOne({ user: id })
-        // Verificar si el carrito está vacío
-        if (!purchase || purchase.items.length === 0) {
-            return res.status(400).send({ message: 'There are no products in the cart' });
-        }
-        // Calcular el total de la compra
-        let totalCart = 0;
-        for (let item of purchase.items) {
-            totalCart += parseInt(item.price) * parseInt(item.quantity);
-        }
-        console.log(totalCart)
-        // Verificar disponibilidad de stock para cada producto en el carrito
-        for (let item of purchase.items) {
-            if (item.product.stock < item.quantity) {
-                return res.status(400).send({ message: 'There is not enough stock for the product' });
-            }
-
-        }
-        let carrito = new Carrito({
-            user: id,
-            purchase: purchase._id,
-            items: purchase.items.map(item => ({
-                product: item.product._id,
-                quantity: item.quantity,
-                price: item.price
-            })),
-            total: totalCart
-        })
-        await cart.save();
-        // Limpiar el carrito del usuario
-        await Purchase.findOneAndDelete({ user: id });
-        return res.status(200).send({ message: 'Payment processed successfully' });
-    } catch (error) {
-        console.error(error);
-        return res.status(500).send({ message: 'Error processing payment' });
-    }
-};
-
-//Generar la factura
-export const generarFactura = async (req, res) => {
-    try {
-        //Sacar id del token
-        let token = req.headers.authorization;
-        let decodeToken = jwt.verify(token, process.env.SECRET_KEY);
-        let id = decodeToken.id;
-        //Buscar la compra asociada al usuario
-        let carrito = await Cart.findOne({ user: id }).populate('user').populate('items.product')
-        if (!carrito) {
-            return res.status(404).send({ message: 'Purchase not found check if it is correct' })
-        }
-        //Crear el documento pdf
-        let doc = new PDFdocument();
-        const filePath = path.resolve('factura.pdf');
-        doc.pipe(fs.createWriteStream(filePath));
-        //Agregar contenido al PDF
-        doc.fontSize(14)
-        doc.text('Factura de la compra', { aling: 'center' });
-        doc.moveDown();
-        doc.text(`Fecha: ${cart.fecha}`, { align: 'right' })
-        doc.text(`Usuario: ${cart.user.name}`, { align: 'left' })
-        doc.moveDown();
-        doc.text('Products');
-        doc.moveDown()
-        cart.items.forEach((item, index) => {
-            doc.text(`${index + 1}, ${item.product.name} - Cantidad: ${item.quantity} - Precio Unitario: ${item.price}`)
-        });
-        doc.moveDown();
-        doc.text(`Total a pagar: ${cart.total}`);
-        //Cerrar el PDF
-        doc.end();
-        //Enviar el pdf como respuesta
-        res.sendFile(filePath);
+        let data = req.body
+        let secretKey = process.env.SECRET_KEY
+        let { authorization } = req.headers
+        let { uid } = jwt.verify(authorization, secretKey)
+        data.user = uid
+        let product = await Product.findOne({ _id: data.product })
+        if (!product) return res.status(404).send({ message: 'Product not found' })
+        let user = await User.findOne({ _id: data.user })
+        if (!user) return res.status(404).send({ message: 'Client not found' })
+        let restaStock = await Product.findById(data.product)
+        restaStock.stock -= parseInt(data.amount)
+        await restaStock.save()
+        let purchase = new Purchase(data)
+        await purchase.save()
+        return res.send({ message: `Purchase registered correctly ${purchase.date} and the stock is updated`, restaStock })
     } catch (err) {
         console.error(err)
-        return res.status(500).send({ message: 'Error generating invoice' });
+        return res.status(500).send({ message: 'Error registering purchase', err: err })
+    }
+}
+
+export const update = async (req, res) => {
+    try {
+        let { id } = req.params
+        let data = req.body
+        let update = checkUpdateUser(data, id)
+        if (!update) return res.status(400).send({ message: 'Some data cannot be updated or missing data' })
+        let secretKey = process.env.SECRET_KEY
+        let { authorization } = req.headers
+        let { uid } = jwt.verify(authorization, secretKey)
+        let originalPurchase = await Purchase.findById(id)
+        if (!originalPurchase) return res.status(404).send({ message: 'Purchase not found' })
+        if (originalPurchase.user.toString() !== uid) return res.status(403).send({ message: 'Unauthorized to update this purchase' })
+        let updatedPurchase = await Purchase.findOneAndUpdate(
+            { _id: id },
+            data,
+            { new: true }
+        ).populate('product')
+        let product = await Product.findById(originalPurchase.product)
+        let updateAmount = originalPurchase.amount - data.amount
+
+        product.stock += updateAmount
+        await product.save()
+
+        if (!updatedPurchase) return res.status(401).send({ message: 'Purchase not found and not updated' })
+        return res.send({ message: 'Purchase updated', updatedPurchase })
+    } catch (err) {
+        console.error(err)
+        if (err.keyValue.description) return res.status(400).send({ message: `Purchase ${err.keyValue.description} is already taken` })
+        return res.status(500).send({ message: 'Error updating purchase' })
+    }
+}
+
+export const get = async (req, res) => {
+    try {
+        let secretKey = process.env.SECRET_KEY
+        let { authorization } = req.headers
+        let { uid } = jwt.verify(authorization, secretKey)
+
+        let purchases = await Purchase.find({ client: uid })
+
+        return res.send({ purchases })
+    } catch (err) {
+        console.error(err)
+        return res.status(500).send({ message: 'Error getting purchases' })
+    }
+}
+
+
+export const generateInvoice = async (req, res) => {
+    try {
+        const uid = req.user.id
+        const currentDate = new Date().toLocaleDateString('en-US', { timeZone: 'UTC' })
+        const purchases = await Purchase.find({ client: uid }).populate('product')
+        const fileName = `invoices_${uid}.pdf`
+        const doc = new PDFDocument()
+        doc.pipe(fs.createWriteStream(fileName))
+        doc.fontSize(12).text('Invoices Client', { align: 'center' }).moveDown()
+
+        let total = 0
+        purchases.forEach((purchase, index) => {
+            const totalPurchase = purchase.product.price * purchase.amount
+            total += totalPurchase
+
+            if (index === 0) {
+                doc.fontSize(10).text('Date: ' + currentDate).moveDown()
+            }
+            doc.fontSize(10)
+                .text('Product: ' + purchase.product.name, { continued: true })
+                .text('Price: ' + `Q${purchase.product.price.toFixed(2)}`, { continued: true })
+                .text('Amount: ' + purchase.amount, { continued: true })
+                .text('Total: ' + `Q${totalPurchase.toFixed(2)}`)
+                .moveDown()
+        })
+
+        doc.fontSize(12).text('Total: ' + `Q${total.toFixed(2)}`, { align: 'right' }).moveDown()
+
+        doc.end()
+
+        await Purchase.deleteMany({ client: uid })
+
+        res.download(fileName)
+    } catch (error) {
+        console.error('Error generating invoices and deleting purchases:', error)
+        res.status(500).send('Error generating invoices and deleting purchases')
     }
 }
