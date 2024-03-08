@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { test, register } from "./pruchase.controller.js";
 import { validateJwt } from '../middlewares/validate-jwt.js'
+import { test, register } from "../purchase/purchase.controller.js";
 
 const api = Router()
 

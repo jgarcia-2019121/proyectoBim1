@@ -1,47 +1,34 @@
+'use strict'
+
 import jwt from 'jsonwebtoken'
 import User from '../user/user.model.js'
 
 
-export const validateJwt = (req, res, next) => {
-    const token = req.headers.authorization;
-    const currentRoute = req.path;
-    const publicRoutes = ['api/check/login'];
-
-    if (publicRoutes.includes(currentRoute)) {
-        return next();
-    }
-    if (!token) {
-        return res.status(401).json({ message: 'Authentication token not provided' });
-    }
+export const validateJwt = async (req, res, next) => {
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded;
-        next();
-    } catch (error) {
-        console.error(error);
-        return res.status(401).json({ message: 'Invalid authentication token' });
-    }
-};
-
-export const isClient = async (req, res, next) => {
-    try {
-        let { user } = req
-        if (!user || user.role !== 'CLIENT') return res.status(403).send({ message: 'You do not have access check it' })
+        let secretKey = process.env.SECRET_KEY
+        let { authorization } = req.headers
+        if (!authorization) return res.status(401).send({ message: 'Unauthorized' })
+        let { uid } = jwt.verify(authorization, secretKey)
+        let user = await User.findOne({ _id: uid })
+        if (!user) return res.status(404).send({ mesage: 'User not found - Unauthorized' })
+        req.user = user
         next()
-    } catch (error) {
-        console.error(error);
-        return res.status(403).send({ message: 'invalid authorization plis check' })
+
+    } catch (err) {
+        console.error(err)
+        return res.status(401).send({ message: 'Invalid Token' })
+
     }
 }
 
 export const isAdmin = async (req, res, next) => {
     try {
         let { user } = req
-        if (!user || user.role !== 'ADMIN') return res.status(403).send({ message: 'You do not have access check it' })
+        if (!user || user.role !== 'ADMIN') return res.status(403).send({ message: `This user does not have administrator permissions  | username: ${user.username}` })
         next()
-    } catch (error) {
-        console.error(error);
-        return res.status(403).send({ message: 'invalid authorization plis check' })
+    } catch (err) {
+        console.error(err)
+        return res.status(403).send({ message: 'Unauthorized role' })
     }
 }
-

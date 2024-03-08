@@ -1,6 +1,8 @@
 'use strict'
 
 import mongoose from "mongoose"
+import bcrypt from "bcrypt"
+import User from '../src/user/user.model.js'
 
 export const connect = async () => {
     try {
@@ -14,8 +16,26 @@ export const connect = async () => {
         mongoose.connection.on('connected', () => {
             console.log('MongoDB | connected to mongodb')
         })
-        mongoose.connection.once('open', () => {
-            console.log('MongoDB | connected to database')
+        mongoose.connection.once('open', async () => {
+            console.log('MongoDB | connected to database');
+
+            //Verificar si hay usuario Admin creado
+            const adminExist = await User.findOne();
+
+            if (!adminExist || !adminExist.role === 'ADMIN') {
+                const hashPassword = await bcrypt.hash('default123', 10);
+                const defaultAdmin = new User({
+                    name: 'defaultAdmin',
+                    surname: 'default',
+                    username: 'admin',
+                    password: hashPassword,
+                    email: 'admin@gmail.com',
+                    phone: 12345678,
+                    role: 'ADMIN'
+                });
+                await defaultAdmin.save();
+                console.log('created default admin', defaultAdmin)
+            }
         })
         mongoose.connection.on('reconnected', () => {
             console.log('MongoDB | reconected to mongodb')

@@ -9,9 +9,9 @@ const api = express.Router();
 api.get('/test', test)
 api.post('/register', [validateJwt, isAdmin], register)
 
-api.put('/update', [validateJwt, isAdmin], update)
+api.put('/update/:id', [validateJwt, isAdmin], update)
 api.delete('/deleteP/:id', [validateJwt, isAdmin], deleteP)
-api.post('/search', search)
+api.get('/search', search)
 api.get('/list', list)
 api.get('/spent', [validateJwt, isAdmin], spent)
 api.get('/bestProductsPurchased', bestProductsPurchased)

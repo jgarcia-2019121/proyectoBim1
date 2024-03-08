@@ -2,7 +2,7 @@
 
 import Category from './category.model.js'
 import Product from '../product/product.model.js'
-import { checkUpdateClient } from '../utils/validator.js'
+import { checkUpdateUser } from '../utils/validator.js'
 
 
 //Test
@@ -40,7 +40,7 @@ export const update = async (req, res) => {
     try {
         let data = req.body
         let { id } = req.params
-        let update = checkUpdateClient(data, id)
+        let update = checkUpdateUser(data, id)
         if (update === false) return res.status(400).send({ message: 'enter all data' })
         let updateCat = await Category.findOneAndUpdate(
             { _id: id },
@@ -59,29 +59,13 @@ export const update = async (req, res) => {
 //Eliminar la categoria
 export const deleteC = async (req, res) => {
     try {
-        let categoryToDelete = await Category.findById(id);
-        if (!categoryToDelete) {
-            return res.status(404).send({ message: 'The category does not exist' });
-        }
-        // Buscar la categoría 'default'
-        let defaultCategory = await Category.findOne({ name: 'Default' });
-        if (!defaultCategory) {
-            return res.status(404).send({ message: 'Default category not found' });
-        }
-        // Actualizar los productos relacionados a la categoría que se está eliminando
-        let updateProducts = await Product.updateMany(
-            { category: categoryToDelete._id },
-            { $set: { category: defaultCategory._id } }
-        );
-        // Eliminar la categoría
-        let deleteCategory = await Category.findOneAndDelete({ _id: id });
-        if (!deleteCategory) {
-            return res.status(404).send({ message: 'Error when deleting category' });
-        }
-        return res.send({ message: `Category with name ${deleteCategory.name} deleted successfully` });
-    } catch (error) {
-        console.error(error);
-        return res.status(500).send({ message: 'Internal server error' });
+        let { id } = req.params;
+        let deletedCategory = await Category.findOneAndDelete({ _id: id });
+        if (!deletedCategory) return res.status(404).send({ message: 'Category not found and not deleted' });
+        return res.send({ message: `Category with name ${deletedCategory.name} deleted successfully` });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).send({ message: 'Error deleting Category' });
     }
 }
 
@@ -91,27 +75,9 @@ export const search = async (req, res) => {
         let { search } = req.body
         let category = await Category.find({ name: search })
         if (!category) return res.status(404).send({ message: 'Category not found' })
-        return res.send({ message: 'Product found', category })
+        return res.send({ message: 'Category found', category })
     } catch (err) {
         console.error(err)
         return res.status(500).send({ message: 'Error searching Category' })
-    }
-}
-
-//Categoria default del Admin
-export const defaultCategory = async () => {
-    try {
-        const existingCategory = await Category.findOne({ name: 'Default' });
-        if (existingCategory) {
-            return;
-        }
-        let data = {
-            name: 'Default',
-            description: 'default'
-        }
-        let category = new Category(data)
-        await category.save()
-    } catch (error) {
-        console.error(error)
     }
 }

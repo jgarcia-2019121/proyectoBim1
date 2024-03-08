@@ -1,45 +1,47 @@
-import Category from '../category/category.model.js'
 import Product from '../product/product.model.js'
-import { checkUpdateClient } from '../utils/validator.js'
-import Invoice from '../invoice/invoice.model.js'
-import mongoose from 'mongoose';
+import { checkUpdateProduct } from '../utils/validator.js'
+import Invoice from '../cart/cart.model.js'
+import mongoose from 'mongoose'
 
 
 export const test = (req, res) => {
     console.log('Test is running')
-    res.send({ message: 'test good' })
+    res.send({ message: 'Test is running' })
 }
 
 export const register = async (req, res) => {
     try {
         let data = req.body
-        let category = await Category.findOne({ _id: data.category })
-        if (!category) return res.status(404).send({ message: 'Category not found' })
+        const existingProduct = await Product.findOne({ name: data.name });
+        if (existingProduct) {
+            return res.status(400).send({ message: 'Products already exists' });
+        }
         let product = new Product(data)
         await product.save()
-        return res.send({ message: 'a new product was created' })
-    } catch (error) {
-        console.error(error)
-        return res.status(500).send({ message: 'Error register product' })
+        return res.send({ message: `Registered succesfully, can be logged with name ${product.name}` })
+    } catch (err) {
+        console.error(err)
+        return res.status(500).send({ message: 'Error registering product', err: err })
     }
 }
 
 export const update = async (req, res) => {
     try {
-        let data = req.body
         let { id } = req.params
-        let update = checkUpdateClient(data, false)
-        if (!update) return res.status(400).send({ message: 'Have submitted some data that cannot be updated or missing data' })
-        let updatePro = await Product.findOneAndUpdate(
+        let data = req.body
+        let update = checkUpdateProduct(data, id)
+        if (!update) return res.status(400).send({ message: 'Have submitted some data that cannot be updated' })
+        let updatedProducts = await Product.findOneAndUpdate(
             { _id: id },
             data,
             { new: true }
-        ).populate('category')
-        if (!updatePro) return res.status(401).send({ message: 'Product not found and not updated' })
-        return res.send({ message: 'Updated product', updatePro })
-    } catch (error) {
-        console.error(error);
-        return res.status(500).send({ message: 'error updating Product' })
+        )
+        if (!updatedProducts) return res.status(404).send({ message: 'Product not found and not updated' })
+        return res.send({ message: 'Product updated', updatedProducts })
+    } catch (err) {
+        console.error(err)
+        if (err.keyValue && err.keyValue.name) return res.status(400).send({ message: `Product ${err.keyValue.name} is already taken` })
+        return res.status(500).send({ message: 'Error updating product' })
     }
 }
 
@@ -57,16 +59,17 @@ export const deleteP = async (req, res) => {
 
 export const search = async (req, res) => {
     try {
-        let { search } = req.params
-        let product = await Product.find({ name: search }).populate('category')
-        if (!product) return res.status(404).send({ message: 'product not found' })
-        return res.send({ message: 'product found', product })
-    } catch (error) {
-        console.error(error)
-        return res.status(500).send({ message: 'Error searching for products' })
+        let { search } = req.body
+        let products = await Product.find({ name: search })
+        if (!products) return res.status(404).send({ message: 'Product not found' })
+        return res.send({ message: 'Product found', products })
+    } catch (err) {
+        console.error(err)
+        return res.status(500).send({ message: 'Error searching products' })
     }
 }
 
+//Lista de las categorias existentes
 export const list = async (req, res) => {
     try {
         let data = await Product.find().populate('category')
@@ -81,11 +84,11 @@ export const list = async (req, res) => {
 export const spent = async (req, res) => {
     try {
         let data = await Product.findOne({ stock: 0 }).populate('category')
-        if (!data) return res.status(444).send({ message: "Products were sold out" })
+        if (!data) return res.status(444).send({ message: "there are no products out of stock" })
         return res.send({ data })
     } catch (error) {
         console.error(error)
-        return res.status(500).send({ message: 'Error obtaining information' })
+        return res.status(500).send({ message: 'the information cannot be brought' })
     }
 }
 

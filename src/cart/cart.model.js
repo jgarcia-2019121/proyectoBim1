@@ -1,12 +1,12 @@
 import { Schema, model } from 'mongoose'
 
-const envoiceSchema = new Schema({
+const cartSchema = new Schema({
     user: {
         type: Schema.Types.ObjectId,
         ref: 'User',
         required: true
     },
-    items: {
+    items: [{
         product: {
             type: Schema.Types.ObjectId,
             ref: 'Product',
@@ -16,22 +16,14 @@ const envoiceSchema = new Schema({
             type: Number,
             required: true
         },
-        unitPrice: {
+        price: {
             type: Number,
             required: true
         }
-    },
-    totalAmount: {
-        type: Number,
-        required: true
-    },
-    date: {
-        type: Date,
-        default: Date.now
-    }
+    }]
 }, {
     versionKey: false
 });
 
-export default model('envoice', envoiceSchema)
+export default model('cart', cartSchema)
 

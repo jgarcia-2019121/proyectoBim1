@@ -1,29 +1,41 @@
-import mongoose from "mongoose"
+import { Schema, model } from 'mongoose'
 
-const purchaseSchema = mongoose.Schema({
+const purchaseSchema = Schema({
     user: {
         type: Schema.Types.ObjectId,
-        ref: 'user',
-        require: [true, "User is require"]
+        ref: 'User',
+        required: true
     },
-    products: {
+    carrito: {
+        type: Schema.Types.ObjectId,
+        ref: 'Cart',
+        required: true
+    },
+    items: [{
         product: {
             type: Schema.Types.ObjectId,
-            ref: 'product',
-            require: [true, "Product is require"]
+            ref: 'Product',
+            required: true
         },
         quantity: {
             type: Number,
-            default: 1,
-            require: [true, "Quantity is require"]
+            required: true
+        },
+        price: {
+            type: String,
+            required: true
         }
-    },
+    }],
     total: {
-        type: Number,
-        require: true
+        type: String,
+        required: true
+    },
+    fecha: {
+        type: Date,
+        default: Date.now
     }
 }, {
     versionKey: false
 })
 
-export default mongoose.model('purchase', purchaseSchema)
+export default model('purchase', purchaseSchema)
